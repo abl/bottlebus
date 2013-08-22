@@ -24,7 +24,7 @@ class OneBusAway:
         URI = '%swhere/stops-for-location.json?%s' % (ENDPOINT, urlencode(args))
         data = json.load(urllib2.urlopen(URI))
         stops = data['data']['stops']
-        return [str(y[1]) for y in sorted([((x['lat']-lat)**2+(x['lon']-lon)**2, x['id']+":"+x['direction']+":"+x['name']) for x in stops], key=lambda x:x[0])]
+        return [str(y[1]) for y in sorted([((x['lat']-lat)**2+(x['lon']-lon)**2, x['id']+":"+x['direction']+":"+x['name'].replace(" & ", "\n") for x in stops], key=lambda x:x[0])]
 
     def arrivalsAndDeparturesForStop(self, stop):
         URI = '%swhere/arrivals-and-departures-for-stop/%s.json?key=%s' % (ENDPOINT, stop, self._key)
