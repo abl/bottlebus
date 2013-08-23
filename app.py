@@ -29,14 +29,7 @@ api = onebusaway.OneBusAway(key=os.environ['ONEBUSAWAY_KEY'])
 #Let's further assume that every request's parameters are densely keyed; 1,2,3 not 3,8,10
 #This function maps incoming pebble requests to the relevant arguments.
 #Further, let's assume that every function returns an array.
-#Let's send back to the pebble a simple encoding:
-#1: ["B', len(array)]
-#2: array[0]
-#n: array[n-2]
-#TODO: This assumes all returns are string arrays
-#TODO: Should probably special-case 'id' and 'db' parameters
-#TODO: Automatic paging; will come after sqlite and other bits.
-MAX_REQUEST_SIZE = 90 #TODO: This looks like it'll need trial and error...
+MAX_REQUEST_SIZE = 78 #From stress testing
 def pebbleize(function):
     def inner():
         pebbleId = request.headers.get('X-Pebble-ID')
@@ -55,21 +48,19 @@ def pebbleize(function):
             args.append(data[k])
         array = function(pebbleId, *args)
 
-        output = {}
+        output = []
         total = 0
-        i = 1
+
         while len(array):
             v = array.pop(0)
-            s = len(v)+7 #TODO: 4 bytes for the key overhead?
-            if total+s > MAX_REQUEST_SIZE:
+            v = v.replace("\r", "")
+            total += len(v)+1
+            if total > MAX_REQUEST_SIZE:
                 log.warn("Had to truncate request to %s made by %s: %d value(s) cut off" % (name, pebbleId, len(array)+1))
                 break
-            i+=1
-            total += s
-            output[str(i)] = v
+            output.append(v)
 
-        output['1'] = i-1
-        return output
+        return {'1':"\r".join(output)}
 
     return inner
 
